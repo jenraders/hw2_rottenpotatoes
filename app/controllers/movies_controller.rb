@@ -7,28 +7,61 @@ class MoviesController < ApplicationController
   end
 
   def index
-    @movies = Movie.all
-    @redirect = 0
+    redirect = false
     if(@checked != nil)
-    @movies = @movies.find_all{ |m| @checked.has_key?(m.rating) and  @checked[m.rating]==true} 
+      @movies = @movies.find_all{ |m| @checked.has_key?(m.rating) and  @checked[m.rating]==true}      
+    end
+    if params[:sort]
+      @sort = params[:sort]
+      session[:sort] = params[:sort]
+    elsif session[:sort]
+      @sort = session[:sort]
+      redirect = true
+    else
+      @sort = nil
+    end
+    if params[:commit] == "Refresh" and params[:ratings].nil?
+      @ratings = nil
+      session[:ratings] = nil
+    elsif params[:ratings]
+      @ratings = params[:ratings]
+      session[:ratings] = params[:ratings]
+    elsif session[:ratings]
+      @ratings = session[:ratings]
+      redirect = true
+    else
+      @ratings = nil
+    end
+    
+    if redirect
+      flash.keep
+      redirect_to movies_path :sort=>@sort, :ratings=>@ratings
+    end
+    
+    if @ratings and @sort
+      @movies = Movie.where(:rating => @ratings.keys).find(:all, :order => (@sort))
+    elsif @ratings
+      @movies = Movie.where(:rating => @ratings.keys)
+    elsif @sort
+      @movies = Movie.find(:all, :order => (@sort))
+    else
+      @movies = Movie.all
+    end
+    if !@ratings
+      @ratings = Hash.new
+    end
+    @checked = {}
+    @all_ratings =  ['G','PG','PG-13','R']
+    @all_ratings.each { |rating|
+      if params[:ratings] == nil
+        @checked[rating] = false
+      else
+        @checked[rating] = params[:ratings].has_key?(rating)
+      end
+    }
   end
-   if(params[:sort].to_s == 'title')
-	@sort = params[:sort]
-		#session[:sort] = params[:sort]
-		@movies = @movies.sort_by{|m| m.title }
-	elsif(params[:sort].to_s == 'release_date')
-	@sort = params[:sort]
-		#session[:sort] = params[:sort]
-		@movies = @movies.sort_by{|m| m.release_date.to_s }
-	elsif(session.has_key?(:sort))
-	@sort = params[:sort]
-		params[:sort] = session[:sort]
-	#	@redirect = 1
-	@ratings
-	end
-	end
-
-  def new
+  
+    def new
     # default: render 'new' template
   end
 
@@ -55,5 +88,4 @@ class MoviesController < ApplicationController
     flash[:notice] = "Movie '#{@movie.title}' deleted."
     redirect_to movies_path
   end
-
 end
