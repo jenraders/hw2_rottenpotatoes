@@ -54,7 +54,7 @@ class MoviesController < ApplicationController
     @all_ratings =  ['G','PG','PG-13','R']
     @all_ratings.each { |rating|
       if params[:ratings] == nil
-        @checked[rating] = false
+        @checked[rating] = true
       else
         @checked[rating] = params[:ratings].has_key?(rating)
       end
